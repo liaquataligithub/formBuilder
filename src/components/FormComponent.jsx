@@ -12,7 +12,7 @@ export function FormComponent({ field, onDelete, onMove, isFirst, isLast }) {
     transition,
   } = useSortable({ 
     id: field.id,
-    disabled: true // Disable drag-and-drop when using up/down arrows
+    disabled: false
   });
 
   const style = {
@@ -20,21 +20,41 @@ export function FormComponent({ field, onDelete, onMove, isFirst, isLast }) {
     transition,
   };
 
-  const handleDelete = () => {
-    if (typeof onDelete === 'function' && field?.id) {
+  // Simplified delete handler
+  const handleDelete = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!field?.id) {
+      console.error('Field ID is missing');
+      return;
+    }
+
+    if (typeof onDelete === 'function') {
       onDelete(field.id);
+    } else {
+      console.error('onDelete is not a function. Received:', onDelete, 'for field ID:', field.id);
     }
   };
 
-  const handleMove = (direction) => {
-    if (onMove) {
+  // Move handler
+  const handleMove = React.useCallback((direction, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!field?.id) {
+      console.error('Field ID is missing'); 
+      return;
+    }
+
+    if (typeof onMove === 'function') {
       onMove(field.id, direction);
+    } else {
+      console.error('onMove is not a function');
     }
-  };
+  }, [field, onMove]);
 
-  // Verify required props
   if (!field || !field.id || !field.type || !field.label) {
-    console.error('Required field props are missing:', field);
     return null;
   }
 
@@ -44,12 +64,12 @@ export function FormComponent({ field, onDelete, onMove, isFirst, isLast }) {
       style={style}
       className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-3 relative group"
     >
-      <div className="absolute right-2 top-1/4 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100">
+      <div className="absolute right-2 top-1/5 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100">
         {/* Move Up Button */}
         {!isFirst && (
           <button
             type="button"
-            onClick={() => handleMove('up')}
+            onClick={(e) => handleMove('up', e)}
             className="p-1 hover:bg-gray-100 rounded-md text-gray-600 transition-colors z-50"
             title="Move up"
           >
@@ -61,7 +81,7 @@ export function FormComponent({ field, onDelete, onMove, isFirst, isLast }) {
         {!isLast && (
           <button
             type="button"
-            onClick={() => handleMove('down')}
+            onClick={(e) => handleMove('down', e)}
             className="p-1 hover:bg-gray-100 rounded-md text-gray-600 transition-colors z-50"
             title="Move down"
           >
@@ -127,4 +147,8 @@ export function FormComponent({ field, onDelete, onMove, isFirst, isLast }) {
       )}
     </div>
   );
-} 
+}
+
+FormComponent.defaultProps = {
+  onDelete: () => console.warn('onDelete function not provided'),
+}; 
